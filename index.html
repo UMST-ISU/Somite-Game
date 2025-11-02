@@ -4,12 +4,20 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>EasyLearn • Skeletal Embryology Game</title>
+
+  <!-- TailwindCSS (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      theme: { extend: { colors: { easylearn: { blue: '#0b5ea8' } }, fontFamily: { sans: ['Inter','ui-sans-serif','system-ui'] } } }
+      theme: {
+        extend: {
+          colors: { easylearn: { blue: '#0b5ea8' } },
+          fontFamily: { sans: ['Inter','ui-sans-serif','system-ui'] }
+        }
+      }
     }
   </script>
+
   <style>
     html,body{background:#f7f9fb}
     .card{border-radius:1rem;box-shadow:0 8px 24px rgba(0,0,0,.06)}
@@ -19,12 +27,14 @@
   </style>
 </head>
 <body class="font-sans text-slate-800">
+  <!-- Header -->
   <header class="max-w-3xl mx-auto px-4 pt-8 pb-4 text-center">
     <img src="./assets/logo.png" alt="EasyLearn logo" style="max-width:180px;margin:0 auto 10px;display:block;" />
     <h1 class="text-2xl md:text-3xl font-bold text-easylearn-blue">Interactive Game: Embryology of the Skeletal System</h1>
     <p class="mt-2 text-sm md:text-base">Step-by-step, quick feedback, and a clean summary at the end.</p>
   </header>
 
+  <!-- Progress -->
   <div class="max-w-3xl mx-auto px-4">
     <div class="w-full bg-white card p-4">
       <div class="flex items-center justify-between mb-2">
@@ -37,21 +47,28 @@
     </div>
   </div>
 
+  <!-- Game Card -->
   <main class="max-w-3xl mx-auto px-4 my-6">
     <section class="bg-white card p-6">
       <div id="stageHeader" class="mb-1 text-xs uppercase tracking-wide text-slate-500">Stage 1</div>
       <h2 id="stageTitle" class="text-xl md:text-2xl font-semibold text-easylearn-blue">Loading…</h2>
       <p id="stageIntro" class="mt-2 text-sm md:text-base text-slate-600">—</p>
+
       <div id="taskArea" class="mt-4"></div>
+
       <div id="feedback" class="mt-4 hidden p-3 rounded-lg"></div>
+
       <div class="mt-6 flex gap-2">
         <button id="checkBtn" class="btn px-4 py-2 rounded-xl bg-easylearn-blue text-white font-semibold disabled:opacity-40">Check</button>
+        <button id="showBtn"  class="btn px-4 py-2 rounded-xl bg-amber-500 text-white font-semibold">Show Answer</button>
         <button id="nextBtn"  class="btn px-4 py-2 rounded-xl bg-slate-800 text-white font-semibold hidden">Next</button>
         <button id="restartBtn" class="btn px-4 py-2 rounded-xl bg-slate-200 font-semibold ml-auto">Restart</button>
       </div>
+      <p class="mt-2 text-xs text-slate-500">Tip: Using “Show Answer” reveals the solution and disables scoring for this item — great for teaching/demos.</p>
     </section>
   </main>
 
+  <!-- Summary -->
   <section id="summaryCard" class="max-w-3xl mx-auto px-4 mb-10 hidden">
     <div class="bg-white card p-6">
       <h3 class="text-xl md:text-2xl font-bold text-easylearn-blue">Summary & Key Takeaways</h3>
@@ -61,194 +78,654 @@
   </section>
 
   <script>
-  // Data
-  const GAME = { stages: [
-    { id:"endochondral", title:"Endochondral Ossification — Put the steps in order", intro:"Arrange the key steps for a long bone formed via a cartilage model.", type:"order",
-      items:["Mesenchymal condensation → chondroblasts form cartilage model","Perichondrium → periosteum; bone collar forms around diaphysis","Hypertrophy & calcification of cartilage in the shaft","Vascular invasion → primary ossification center (diaphysis)","Secondary ossification centers in epiphyses","Epiphyseal plate zones enable longitudinal growth → closure"],
-      correctOrder:[0,1,2,3,4,5],
-      takeaway:"Endochondral ossification proceeds via a cartilage template, with primary and secondary centers and a growth plate.",
-      notes:["Most long bones use endochondral ossification.","Growth in length continues at the epiphyseal plate until closure."]
-    },
-    { id:"intramembranous", title:"Intramembranous Ossification — Select the correct steps",
-      intro:"Tick all correct steps for intramembranous ossification (flat skull bones, mandible, clavicle [lateral part]).", type:"multi",
-      options:[
-        {text:"Mesenchymal cells → osteoblasts; ossification centers form",correct:true},
-        {text:"Cartilage model is essential",correct:false},
-        {text:"Secretion of osteoid and mineralization → woven bone",correct:true},
-        {text:"Remodeling to lamellar bone & formation of trabeculae",correct:true},
-        {text:"Primary ossification center requires vascular invasion of cartilage",correct:false}
-      ],
-      takeaway:"Intramembranous ossification occurs directly in mesenchyme without a cartilage template.",
-      notes:["Neural crest contributes to many intramembranous craniofacial bones.","Remodeling converts woven to lamellar bone."]
-    },
-    { id:"anomalies", title:"Anomalies Quick-Check — Choose the best match", intro:"Pick the most likely mechanism/association for each anomaly.", type:"single-series",
-      questions:[
-        {stem:"Phocomelia (severely shortened limbs with hands/feet close to trunk) is most linked to disruption in:", options:["AER (FGF signaling)","ZPA (SHH gradient)","HOX re-segmentation","Endosteal remodeling"], answerIdx:0, explain:"AER maintains proximodistal outgrowth via FGF; loss leads to proximal limb elements failing to form."},
-        {stem:"Hemivertebra (wedge vertebra) most directly reflects an error in:", options:["Sclerotome migration failure on one side","Dermatome differentiation","Myotome innervation","Periosteal bone collar formation"], answerIdx:0, explain:"Unilateral sclerotome failure leads to half-vertebra → scoliosis."},
-        {stem:"Amelia (absent limb) is most consistent with early disruption of:", options:["Limb bud initiation (FGF10)","Secondary ossification","Epiphyseal plate zone of hypertrophy","HOX D cluster late patterning"], answerIdx:0, explain:"Loss of FGF10-driven limb bud initiation prevents limb formation."}
-      ],
-      takeaway:"Patterning signals (FGF/SHH/HOX) and sclerotome morphogenesis underlie common skeletal anomalies.",
-      notes:["AER (FGF8) = proximodistal; ZPA (SHH) = anteroposterior; Wnt/BMP refine patterning.","Timing matters: earlier insults → more proximal/segmental deficits."]
-    },
-    { id:"somite", title:"Somite Mapper — Drag each card into the correct bucket", intro:"Sort derivatives into Sclerotome, Dermatome, Myotome, or Not from somites.", type:"classify",
-      buckets:["Sclerotome","Dermatome","Myotome","Not from somites"],
-      items:[
-        {text:"Vertebral body",bucket:0},{text:"Neural (vertebral) arch",bucket:0},{text:"Ribs (costal processes)",bucket:0},{text:"Annulus fibrosus of IV disc",bucket:0},
-        {text:"Dermis of back",bucket:1},{text:"Epaxial (deep back) muscles",bucket:2},{text:"Hypaxial (limb/wall) muscles",bucket:2},{text:"Facial bones",bucket:3},{text:"Nucleus pulposus",bucket:3}
-      ],
-      takeaway:"Sclerotome → vertebrae/ribs/annulus; Dermatome → dermis of back; Myotome → epaxial & hypaxial muscles. Craniofacial bones (neural crest) and nucleus pulposus (notochord) are not somite derivatives.",
-      notes:["Sclerotome undergoes resegmentation: caudal half of one somite fuses with cranial half of the next → vertebrae.","IV disc nucleus pulposus derives from notochord; annulus fibrosus from sclerotome."]
-    },
-    { id:"resegmentation", title:"Resegmentation Puzzle — Classify the outcomes", intro:"After sclerotome halves resegment, place each item where it belongs.", type:"classify",
-      buckets:["Intersegmental (after reseg.)","Segmental (remain)","Boundary (IV disc/foramen)"],
-      items:[
-        {text:"Vertebral body alignment",bucket:0},{text:"Spinal nerves",bucket:1},{text:"Myotomes (muscle segments)",bucket:1},{text:"Intervertebral foramen location",bucket:2},
-        {text:"Annulus fibrosus",bucket:2},{text:"Nucleus pulposus",bucket:2},{text:"Vertebral artery course (between segments)",bucket:0}
-      ],
-      takeaway:"Resegmentation makes vertebrae intersegmental while spinal nerves & myotomes remain segmental; boundaries become IV discs and foramina.",
-      notes:["Cranial half of one sclerotome fuses with caudal half of the next → vertebral body is intersegmental.","Spinal nerves exit at new intervertebral foramina; annulus fibrosus from sclerotome; nucleus pulposus from notochord."]
-    },
-    { id:"limb_axes", title:"Limb Axes Gate — AER, ZPA, Wnt7a/En1 & HOX", intro:"Answer each axis control question to pass the gate.", type:"single-series",
-      questions:[
-        {stem:"Loss of AER (FGF8) most strongly affects which axis and outcome?", options:["Proximodistal — limb truncation","Anteroposterior — mirror polydactyly","Dorsoventral — double ventral pads","Left-right — situs inversus"], answerIdx:0, explain:"AER (FGF8) maintains the progress zone for proximodistal outgrowth; loss → truncated limb."},
-        {stem:"Ectopic anterior SHH expression creates which classic patterning defect?", options:["Dorsalization of ventral limb","Anterior mirror digit duplication","Proximal limb truncation","Loss of scapula"], answerIdx:1, explain:"ZPA/SHH defines the anteroposterior axis; anterior ectopic SHH → mirror polydactyly."},
-        {stem:"Loss of Wnt7a in dorsal ectoderm yields:", options:["Double dorsal limb","Double ventral limb","Anterior digit duplication","Complete limb absence"], answerIdx:1, explain:"Wnt7a induces Lmx1 for dorsal fate; loss → ventralization (double ventral)."},
-        {stem:"Engrailed-1 (En1) function is primarily to:", options:["Specify dorsal ectoderm","Restrict Wnt7a to dorsal side (ventral identity)","Activate SHH in ZPA","Initiate limb bud via FGF10"], answerIdx:1, explain:"En1 in ventral ectoderm restricts Wnt7a dorsally and promotes ventral identity."},
-        {stem:"HOX gene changes along the limb primarily influence:", options:["Segment identity along proximodistal axis","Cartilage hypertrophy only","Vascular invasion timing only","Dermatome patterning"], answerIdx:0, explain:"HOX codes set positional identity; in limbs they contribute to segment specification along proximodistal axis."}
-      ],
-      takeaway:"AER/FGF8 → proximodistal growth; ZPA/SHH → anteroposterior digits; Wnt7a (dorsal) and En1 (ventral) set dorsoventral identity; HOX refines segment identities.",
-      notes:["AER removal timing maps to loss of distal elements (e.g., only stylopod forms if removed early).","Ectopic SHH anteriorly → mirror digits; Wnt7a loss → double ventral; En1 loss → double dorsal."]
-    },
-    { id:"clinical", title:"Clinical Correlations — Quick Cases", intro:"Choose the best embryologic mechanism or association for each scenario.", type:"single-series",
-      questions:[
-        {stem:"A newborn has rhizomelic limb shortening, normal intelligence, and midface hypoplasia. Most consistent primary defect?", options:["Failure of intramembranous ossification","Gain-of-function FGFR3 affecting endochondral ossification","Loss of SHH in the ZPA","Wnt7a overexpression in dorsal ectoderm"], answerIdx:1, explain:"Achondroplasia: FGFR3 gain-of-function inhibits chondrocyte proliferation → impaired endochondral ossification (intramembranous largely spared)."},
-        {stem:"Infant with multiple fractures after minimal trauma; blue sclerae; normal growth plates on imaging. Likely defect?", options:["Type I collagen (COL1A1/2) affecting both intramembranous & endochondral bone","Defective SHH gradient causing mirror polydactyly","AER loss causing limb truncation","Failure of sclerotome resegmentation"], answerIdx:0, explain:"Osteogenesis imperfecta (often COL1A1/2) compromises bone matrix in both ossification modes; classic blue sclerae."},
-        {stem:"Newborn with talipes equinovarus (clubfoot). Most common underlying contributor?", options:["Primary AER failure during week 4","Intrauterine positional factors with soft-tissue imbalance","ZPA duplication causing mirror digits","Complete failure of endochondral ossification"], answerIdx:1, explain:"Most clubfoot cases are multifactorial and often relate to intrauterine positional/soft-tissue factors rather than primary skeletal patterning failure."},
-        {stem:"Infant hand shows simple cutaneous syndactyly between digits 2–3. Developmental mechanism?", options:["Excessive SHH signaling","Failed interdigital apoptosis (BMP pathway)","Loss of Wnt7a causing double ventral limb","FGF10 absence preventing limb bud initiation"], answerIdx:1, explain:"Syndactyly usually results from failure of programmed cell death in interdigital mesenchyme (BMP-dependent)."},
-        {stem:"Skull radiograph suggests premature coronal suture closure with brachycephaly. Which is a classic gene association?", options:["FGFR2 or TWIST mutations affecting intramembranous ossification","FGFR3 loss-of-function affecting endochondral ossification","HOX D misexpression limited to digits","COL2A1 defect in hyaline cartilage"], answerIdx:0, explain:"Craniosynostosis often involves FGFR2/TWIST; cranial vault bones form by intramembranous ossification."},
-        {stem:"Neonate with extra posterior digit (postaxial polydactyly). Most linked to?", options:["Anterior ectopic SHH expression","Posterior SHH/ZPA signaling alterations","Loss of En1 in ventral ectoderm","AER removal late in development"], answerIdx:1, explain:"Anteroposterior patterning depends on SHH from ZPA; alterations can produce pre/postaxial polydactyly."}
-      ],
-      takeaway:"Map cases to mechanisms: FGFR3 → endochondral (achondroplasia), COL1A1/2 → brittle bone, syndactyly → failed apoptosis, craniosynostosis → FGFR2/TWIST (intramembranous), polydactyly → SHH/ZPA, clubfoot → positional/soft-tissue imbalance.",
-      notes:["Timing matters: early AER/ZPA disruptions → severe limb patterning defects; many postural deformities (e.g., clubfoot) are extrinsic.","Use ‘which axis/signal/ossification mode?’ as a fast diagnostic frame in exams."]
-    }
-  ]};
+  // -------------------------
+  // Editable data (JSON-like)
+  // -------------------------
+  const GAME = {
+    stages: [
+      {
+        id: "endochondral",
+        title: "Endochondral Ossification — Put the steps in order",
+        intro: "Arrange the key steps for a long bone formed via a cartilage model.",
+        type: "order",
+        items: [
+          "Mesenchymal condensation → chondroblasts form cartilage model",
+          "Perichondrium → periosteum; bone collar forms around diaphysis",
+          "Hypertrophy & calcification of cartilage in the shaft",
+          "Vascular invasion → primary ossification center (diaphysis)",
+          "Secondary ossification centers in epiphyses",
+          "Epiphyseal plate zones enable longitudinal growth → closure"
+        ],
+        correctOrder: [0,1,2,3,4,5],
+        takeaway: "Endochondral ossification proceeds via a cartilage template, with primary and secondary centers and a growth plate.",
+        notes: [
+          "Most long bones use endochondral ossification.",
+          "Growth in length continues at the epiphyseal plate until closure."
+        ]
+      },
+      {
+        id: "intramembranous",
+        title: "Intramembranous Ossification — Select the correct steps",
+        intro: "Tick all correct steps for intramembranous ossification (flat skull bones, mandible, clavicle [lateral part]).",
+        type: "multi",
+        options: [
+          { text: "Mesenchymal cells → osteoblasts; ossification centers form", correct: true },
+          { text: "Cartilage model is essential", correct: false },
+          { text: "Secretion of osteoid and mineralization → woven bone", correct: true },
+          { text: "Remodeling to lamellar bone & formation of trabeculae", correct: true },
+          { text: "Primary ossification center requires vascular invasion of cartilage", correct: false }
+        ],
+        takeaway: "Intramembranous ossification occurs directly in mesenchyme without a cartilage template.",
+        notes: [
+          "Neural crest contributes to many intramembranous craniofacial bones.",
+          "Remodeling converts woven to lamellar bone."
+        ]
+      },
+      {
+        id: "anomalies",
+        title: "Anomalies Quick-Check — Choose the best match",
+        intro: "Pick the most likely mechanism/association for each anomaly.",
+        type: "single-series",
+        questions: [
+          {
+            stem: "Phocomelia (severely shortened limbs with hands/feet close to trunk) is most linked to disruption in:",
+            options: ["AER (FGF signaling)", "ZPA (SHH gradient)", "HOX re-segmentation", "Endosteal remodeling"],
+            answerIdx: 0,
+            explain: "AER maintains proximodistal outgrowth via FGF; loss leads to proximal limb elements failing to form."
+          },
+          {
+            stem: "Hemivertebra (wedge vertebra) most directly reflects an error in:",
+            options: ["Sclerotome migration failure on one side", "Dermatome differentiation", "Myotome innervation", "Periosteal bone collar formation"],
+            answerIdx: 0,
+            explain: "Unilateral sclerotome failure leads to half-vertebra → scoliosis."
+          },
+          {
+            stem: "Amelia (absent limb) is most consistent with early disruption of:",
+            options: ["Limb bud initiation (FGF10)", "Secondary ossification", "Epiphyseal plate zone of hypertrophy", "HOX D cluster late patterning"],
+            answerIdx: 0,
+            explain: "Loss of FGF10-driven limb bud initiation prevents limb formation."
+          }
+        ],
+        takeaway: "Patterning signals (FGF/SHH/HOX) and sclerotome morphogenesis underlie common skeletal anomalies.",
+        notes: [
+          "AER (FGF8) = proximodistal; ZPA (SHH) = anteroposterior; Wnt/BMP refine patterning.",
+          "Timing matters: earlier insults → more proximal/segmental deficits."
+        ]
+      },
+      {
+        id: "somite",
+        title: "Somite Mapper — Drag each card into the correct bucket",
+        intro: "Sort derivatives into Sclerotome, Dermatome, Myotome, or Not from somites.",
+        type: "classify",
+        buckets: ["Sclerotome","Dermatome","Myotome","Not from somites"],
+        items: [
+          { text: "Vertebral body", bucket: 0 },
+          { text: "Neural (vertebral) arch", bucket: 0 },
+          { text: "Ribs (costal processes)", bucket: 0 },
+          { text: "Annulus fibrosus of IV disc", bucket: 0 },
+          { text: "Dermis of back", bucket: 1 },
+          { text: "Epaxial (deep back) muscles", bucket: 2 },
+          { text: "Hypaxial (limb/wall) muscles", bucket: 2 },
+          { text: "Facial bones", bucket: 3 },        // neural crest
+          { text: "Nucleus pulposus", bucket: 3 }     // notochord
+        ],
+        takeaway: "Sclerotome → vertebrae/ribs/annulus; Dermatome → dermis of back; Myotome → epaxial & hypaxial muscles. Craniofacial bones (neural crest) and nucleus pulposus (notochord) are not somite derivatives.",
+        notes: [
+          "Sclerotome undergoes resegmentation: caudal half of one somite fuses with cranial half of the next → vertebrae.",
+          "IV disc nucleus pulposus derives from notochord; annulus fibrosus from sclerotome."
+        ]
+      },
+      {
+        id: "resegmentation",
+        title: "Resegmentation Puzzle — Classify the outcomes",
+        intro: "After sclerotome halves resegment, place each item where it belongs.",
+        type: "classify",
+        buckets: ["Intersegmental (after reseg.)","Segmental (remain)","Boundary (IV disc/foramen)"],
+        items: [
+          { text: "Vertebral body alignment", bucket: 0 },
+          { text: "Spinal nerves", bucket: 1 },
+          { text: "Myotomes (muscle segments)", bucket: 1 },
+          { text: "Intervertebral foramen location", bucket: 2 },
+          { text: "Annulus fibrosus", bucket: 2 },
+          { text: "Nucleus pulposus", bucket: 2 },
+          { text: "Vertebral artery course (between segments)", bucket: 0 }
+        ],
+        takeaway: "Resegmentation makes vertebrae intersegmental while spinal nerves & myotomes remain segmental; boundaries become IV discs and foramina.",
+        notes: [
+          "Cranial half of one sclerotome fuses with caudal half of the next → vertebral body is intersegmental.",
+          "Spinal nerves exit at new intervertebral foramina; annulus fibrosus from sclerotome; nucleus pulposus from notochord."
+        ]
+      },
+      {
+        id: "limb_axes",
+        title: "Limb Axes Gate — AER, ZPA, Wnt7a/En1 & HOX",
+        intro: "Answer each axis control question to pass the gate.",
+        type: "single-series",
+        questions: [
+          {
+            stem: "Loss of AER (FGF8) most strongly affects which axis and outcome?",
+            options: [
+              "Proximodistal — limb truncation",
+              "Anteroposterior — mirror polydactyly",
+              "Dorsoventral — double ventral pads",
+              "Left-right — situs inversus"
+            ],
+            answerIdx: 0,
+            explain: "AER (FGF8) maintains the progress zone for proximodistal outgrowth; loss → truncated limb."
+          },
+          {
+            stem: "Ectopic anterior SHH expression creates which classic patterning defect?",
+            options: [
+              "Dorsalization of ventral limb",
+              "Anterior mirror digit duplication",
+              "Proximal limb truncation",
+              "Loss of scapula"
+            ],
+            answerIdx: 1,
+            explain: "ZPA/SHH defines the anteroposterior axis; anterior ectopic SHH → mirror polydactyly."
+          },
+          {
+            stem: "Loss of Wnt7a in dorsal ectoderm yields:",
+            options: [
+              "Double dorsal limb",
+              "Double ventral limb",
+              "Anterior digit duplication",
+              "Complete limb absence"
+            ],
+            answerIdx: 1,
+            explain: "Wnt7a induces Lmx1 for dorsal fate; loss → ventralization (double ventral)."
+          },
+          {
+            stem: "Engrailed-1 (En1) function is primarily to:",
+            options: [
+              "Specify dorsal ectoderm",
+              "Restrict Wnt7a to dorsal side (ventral identity)",
+              "Activate SHH in ZPA",
+              "Initiate limb bud via FGF10"
+            ],
+            answerIdx: 1,
+            explain: "En1 in ventral ectoderm restricts Wnt7a dorsally and promotes ventral identity."
+          },
+          {
+            stem: "HOX gene changes along the limb primarily influence:",
+            options: [
+              "Segment identity along proximodistal axis",
+              "Cartilage hypertrophy only",
+              "Vascular invasion timing only",
+              "Dermatome patterning"
+            ],
+            answerIdx: 0,
+            explain: "HOX codes set positional identity; in limbs they contribute to segment specification along proximodistal axis."
+          }
+        ],
+        takeaway: "AER/FGF8 → proximodistal growth; ZPA/SHH → anteroposterior digits; Wnt7a (dorsal) and En1 (ventral) set dorsoventral identity; HOX refines segment identities.",
+        notes: [
+          "AER removal timing maps to loss of distal elements (e.g., only stylopod forms if removed early).",
+          "Ectopic SHH anteriorly → mirror digits; Wnt7a loss → double ventral; En1 loss → double dorsal."
+        ]
+      },
+      {
+        id: "clinical",
+        title: "Clinical Correlations — Quick Cases",
+        intro: "Choose the best embryologic mechanism or association for each scenario.",
+        type: "single-series",
+        questions: [
+          {
+            stem: "A newborn has rhizomelic limb shortening, normal intelligence, and midface hypoplasia. Most consistent primary defect?",
+            options: [
+              "Failure of intramembranous ossification",
+              "Gain-of-function FGFR3 affecting endochondral ossification",
+              "Loss of SHH in the ZPA",
+              "Wnt7a overexpression in dorsal ectoderm"
+            ],
+            answerIdx: 1,
+            explain: "Achondroplasia: FGFR3 gain-of-function inhibits chondrocyte proliferation → impaired endochondral ossification (intramembranous largely spared)."
+          },
+          {
+            stem: "Infant with multiple fractures after minimal trauma; blue sclerae; normal growth plates on imaging. Likely defect?",
+            options: [
+              "Type I collagen (COL1A1/2) affecting both intramembranous & endochondral bone",
+              "Defective SHH gradient causing mirror polydactyly",
+              "AER loss causing limb truncation",
+              "Failure of sclerotome resegmentation"
+            ],
+            answerIdx: 0,
+            explain: "Osteogenesis imperfecta (often COL1A1/2) compromises bone matrix in both ossification modes; classic blue sclerae."
+          },
+          {
+            stem: "Newborn with talipes equinovarus (clubfoot). Most common underlying contributor?",
+            options: [
+              "Primary AER failure during week 4",
+              "Intrauterine positional factors with soft-tissue imbalance",
+              "ZPA duplication causing mirror digits",
+              "Complete failure of endochondral ossification"
+            ],
+            answerIdx: 1,
+            explain: "Most clubfoot cases are multifactorial and often relate to intrauterine positional/soft-tissue factors rather than primary skeletal patterning failure."
+          },
+          {
+            stem: "Infant hand shows simple cutaneous syndactyly between digits 2–3. Developmental mechanism?",
+            options: [
+              "Excessive SHH signaling",
+              "Failed interdigital apoptosis (BMP pathway)",
+              "Loss of Wnt7a causing double ventral limb",
+              "FGF10 absence preventing limb bud initiation"
+            ],
+            answerIdx: 1,
+            explain: "Syndactyly usually results from failure of programmed cell death in interdigital mesenchyme (BMP-dependent)."
+          },
+          {
+            stem: "Skull radiograph suggests premature coronal suture closure with brachycephaly. Which is a classic gene association?",
+            options: [
+              "FGFR2 or TWIST mutations affecting intramembranous ossification",
+              "FGFR3 loss-of-function affecting endochondral ossification",
+              "HOX D misexpression limited to digits",
+              "COL2A1 defect in hyaline cartilage"
+            ],
+            answerIdx: 0,
+            explain: "Craniosynostosis often involves FGFR2/TWIST; cranial vault bones form by intramembranous ossification."
+          },
+          {
+            stem: "Neonate with extra posterior digit (postaxial polydactyly). Most linked to?",
+            options: [
+              "Anterior ectopic SHH expression",
+              "Posterior SHH/ZPA signaling alterations",
+              "Loss of En1 in ventral ectoderm",
+              "AER removal late in development"
+            ],
+            answerIdx: 1,
+            explain: "Anteroposterior patterning depends on SHH from ZPA; alterations can produce pre/postaxial polydactyly."
+          }
+        ],
+        takeaway: "Map cases to mechanisms: FGFR3 → endochondral (achondroplasia), COL1A1/2 → brittle bone, syndactyly → failed apoptosis, craniosynostosis → FGFR2/TWIST (intramembranous), polydactyly → SHH/ZPA, clubfoot → positional/soft-tissue imbalance.",
+        notes: [
+          "Timing matters: early AER/ZPA disruptions → severe limb patterning defects; many postural deformities (e.g., clubfoot) are extrinsic.",
+          "Use ‘which axis/signal/ossification mode?’ as a fast diagnostic frame in exams."
+        ]
+      }
+    ]
+  };
 
-  // Engine
-  let currentStage=0, score=0, total=0;
-  const $=s=>document.querySelector(s);
-  const stageHeader=$("#stageHeader"), stageTitle=$("#stageTitle"), stageIntro=$("#stageIntro"), taskArea=$("#taskArea");
-  const feedback=$("#feedback"), checkBtn=$("#checkBtn"), nextBtn=$("#nextBtn"), restartBtn=$("#restartBtn");
-  const progressBar=$("#progressBar"), progressLabel=$("#progressLabel"), summaryCard=$("#summaryCard"), summaryList=$("#summaryList");
-  const finalScore=$("#finalScore"), finalTotal=$("#finalTotal");
+  // -------------------------
+  // State
+  // -------------------------
+  let currentStage = 0;
+  let score = 0;
+  let total = 0;
+  let revealedThisItem = false; // if true, no score is granted
 
-  function setProgress(){const pct=Math.round((currentStage/GAME.stages.length)*100); progressBar.style.width=pct+"%"; progressLabel.textContent=pct+"%";}
-  function showFeedback(correct,text){ feedback.classList.remove("hidden"); feedback.textContent=text; feedback.classList.toggle("bg-green-100",correct); feedback.classList.toggle("text-green-900",correct); feedback.classList.toggle("bg-red-100",!correct); feedback.classList.toggle("text-red-900",!correct); }
-  function addSummary(s){ const li=document.createElement("li"); li.innerHTML=`<strong>${s.title}</strong>: ${s.takeaway||""}`; summaryList.appendChild(li);
-    if(s.notes&&s.notes.length){ const sub=document.createElement("ul"); sub.className="list-disc pl-5 mt-1 text-slate-600"; s.notes.forEach(n=>{ const nli=document.createElement("li"); nli.textContent=n; sub.appendChild(nli);}); summaryList.appendChild(sub);} }
-  function finishGame(){ progressBar.style.width="100%"; progressLabel.textContent="100%"; finalScore.textContent=String(score); finalTotal.textContent=String(total);
-    summaryCard.classList.remove("hidden"); stageHeader.textContent="Completed"; stageTitle.textContent="Great work!"; stageIntro.textContent="Review your key takeaways below.";
-    taskArea.innerHTML=""; checkBtn.classList.add("hidden"); nextBtn.classList.add("hidden"); }
-  function goNextStage(){ const s=GAME.stages[currentStage]; addSummary(s); currentStage++; if(currentStage>=GAME.stages.length){ finishGame(); } else { renderStage(); } }
+  // -------------------------
+  // DOM helpers
+  // -------------------------
+  const $ = (s) => document.querySelector(s);
+  const stageHeader = $("#stageHeader");
+  const stageTitle  = $("#stageTitle");
+  const stageIntro  = $("#stageIntro");
+  const taskArea    = $("#taskArea");
+  const feedback    = $("#feedback");
+  const checkBtn    = $("#checkBtn");
+  const showBtn     = $("#showBtn");
+  const nextBtn     = $("#nextBtn");
+  const restartBtn  = $("#restartBtn");
+  const progressBar = $("#progressBar");
+  const progressLabel = $("#progressLabel");
+  const summaryCard = $("#summaryCard");
+  const summaryList = $("#summaryList");
+  const finalScore  = $("#finalScore");
+  const finalTotal  = $("#finalTotal");
 
-  function renderStage(){
-    feedback.className="mt-4 hidden p-3 rounded-lg"; feedback.textContent=""; feedback.classList.add("hidden");
-    const s=GAME.stages[currentStage];
-    stageHeader.textContent=`Stage ${currentStage+1} of ${GAME.stages.length}`; stageTitle.textContent=s.title; stageIntro.textContent=s.intro;
-    taskArea.innerHTML=""; checkBtn.classList.remove("hidden"); nextBtn.classList.add("hidden"); checkBtn.disabled=false;
+  function setProgress() {
+    const pct = Math.round((currentStage / GAME.stages.length) * 100);
+    progressBar.style.width = pct + "%";
+    progressLabel.textContent = pct + "%";
+  }
 
-    if(s.type==="order"){
-      total+=1;
-      const items=s.items.map((t,i)=>({t,i})).sort(()=>Math.random()-0.5);
-      const list=document.createElement("ul"); list.className="space-y-2";
-      items.forEach(obj=>{ const li=document.createElement("li"); li.draggable=true; li.dataset.idx=obj.i; li.className="bg-slate-100 p-3 rounded-lg cursor-move"; li.textContent=obj.t; list.appendChild(li); });
+  function renderStage() {
+    feedback.className = "mt-4 hidden p-3 rounded-lg";
+    feedback.textContent = "";
+    feedback.classList.add("hidden");
+    revealedThisItem = false;
+
+    const s = GAME.stages[currentStage];
+    stageHeader.textContent = `Stage ${currentStage + 1} of ${GAME.stages.length}`;
+    stageTitle.textContent = s.title;
+    stageIntro.textContent = s.intro;
+    taskArea.innerHTML = "";
+    checkBtn.classList.remove("hidden");
+    nextBtn.classList.add("hidden");
+    checkBtn.disabled = false;
+
+    if (s.type === "order") {
+      total += 1;
+      const items = s.items.map((t,i)=>({t,i})).sort(()=>Math.random()-0.5);
+      const list = document.createElement("ul");
+      list.className = "space-y-2";
+      items.forEach(obj=>{
+        const li = document.createElement("li");
+        li.draggable = true;
+        li.dataset.idx = obj.i;
+        li.className = "bg-slate-100 p-3 rounded-lg cursor-move";
+        li.textContent = obj.t;
+        list.appendChild(li);
+      });
       taskArea.appendChild(list);
-      let dragEl=null; list.addEventListener("dragstart",e=>{dragEl=e.target; e.dataTransfer.effectAllowed="move";});
-      list.addEventListener("dragover",e=>{e.preventDefault();});
-      list.addEventListener("drop",e=>{e.preventDefault(); const target=e.target.closest("li"); if(!target||target===dragEl)return; const rect=target.getBoundingClientRect();
-        const after=(e.clientY-rect.top)>rect.height/2; if(after) target.after(dragEl); else target.before(dragEl);});
-      checkBtn.onclick=()=>{ const order=Array.from(list.querySelectorAll("li")).map(li=>Number(li.dataset.idx));
-        const correct=JSON.stringify(order)===JSON.stringify(s.correctOrder);
-        showFeedback(correct, correct?"Great! Correct sequence for endochondral ossification.":"Not quite. Review the role of cartilage model and try again.");
-        if(correct){score++; checkBtn.disabled=true; nextBtn.classList.remove("hidden");} };
+      let dragEl = null;
+      list.addEventListener("dragstart", e => { dragEl = e.target; e.dataTransfer.effectAllowed = "move"; });
+      list.addEventListener("dragover", e => { e.preventDefault(); });
+      list.addEventListener("drop", e => {
+        e.preventDefault();
+        const target = e.target.closest("li");
+        if (!target || target === dragEl) return;
+        const rect = target.getBoundingClientRect();
+        const after = (e.clientY - rect.top) > rect.height/2;
+        if (after) target.after(dragEl); else target.before(dragEl);
+      });
+      checkBtn.onclick = () => {
+        const order = Array.from(list.querySelectorAll("li")).map(li=>Number(li.dataset.idx));
+        const correct = JSON.stringify(order) === JSON.stringify(s.correctOrder);
+        showFeedback(correct, correct ? "Great! Correct sequence for endochondral ossification." : "Not quite. Review the role of cartilage model and try again.");
+        if (correct && !revealedThisItem) { score++; }
+        checkBtn.disabled = true; nextBtn.classList.remove("hidden");
+      };
+      showBtn.onclick = () => {
+        // Reveal by sorting DOM to correct order
+        const lis = Array.from(list.querySelectorAll("li"));
+        lis.sort((a,b)=>Number(a.dataset.idx)-Number(b.dataset.idx));
+        lis.forEach(li=>list.appendChild(li));
+        revealedThisItem = true;
+        showFeedback(true, "Answer revealed: items arranged in the correct sequence.");
+        checkBtn.disabled = true; nextBtn.classList.remove("hidden");
+      };
     }
 
-    if(s.type==="multi"){
-      const form=document.createElement("div"); form.className="space-y-2";
-      s.options.forEach((opt,idx)=>{ const row=document.createElement("label"); row.className="flex items-start gap-3 bg-slate-100 p-3 rounded-lg cursor-pointer";
-        row.innerHTML=`<input type="checkbox" data-idx="${idx}" class="mt-1"><span>${opt.text}</span>`; form.appendChild(row);});
-      taskArea.appendChild(form); total+=1;
-      checkBtn.onclick=()=>{ const chosen=Array.from(form.querySelectorAll("input[type=checkbox]")).map(cb=>cb.checked);
-        const correct=chosen.every((v,i)=> v===!!s.options[i].correct);
-        const explain=correct?"Spot on — no cartilage model in intramembranous ossification.":"Check again: intramembranous ossification is direct from mesenchyme (no cartilage template).";
-        showFeedback(correct, explain); if(correct){score++; checkBtn.disabled=true; nextBtn.classList.remove("hidden");} };
+    if (s.type === "multi") {
+      const form = document.createElement("div");
+      form.className = "space-y-2";
+      s.options.forEach((opt, idx) => {
+        const row = document.createElement("label");
+        row.className = "flex items-start gap-3 bg-slate-100 p-3 rounded-lg cursor-pointer";
+        row.innerHTML = `
+          <input type="checkbox" data-idx="${idx}" class="mt-1">
+          <span>${opt.text}</span>
+        `;
+        form.appendChild(row);
+      });
+      taskArea.appendChild(form);
+      total += 1;
+      checkBtn.onclick = () => {
+        const chosen = Array.from(form.querySelectorAll("input[type=checkbox]")).map(cb => cb.checked);
+        const correct = chosen.every((v,i)=> v === !!s.options[i].correct);
+        const explain = correct
+          ? "Spot on — no cartilage model in intramembranous ossification."
+          : "Check again: intramembranous ossification is direct from mesenchyme (no cartilage template).";
+        if (correct && !revealedThisItem) { score++; }
+        showFeedback(correct, explain);
+        checkBtn.disabled = true; nextBtn.classList.remove("hidden");
+      };
+      showBtn.onclick = () => {
+        // Tick correct boxes, untick incorrect, and disable inputs
+        const inputs = Array.from(form.querySelectorAll("input[type=checkbox]"));
+        inputs.forEach((cb, i) => { cb.checked = !!s.options[i].correct; cb.disabled = true; });
+        revealedThisItem = true;
+        showFeedback(true, "Answer revealed: correct steps are ticked.");
+        checkBtn.disabled = true; nextBtn.classList.remove("hidden");
+      };
     }
 
-    if(s.type==="single-series"){
-      let qIndex=0; total+=s.questions.length;
-      const qBox=document.createElement("div"), stem=document.createElement("div"), opts=document.createElement("div");
-      stem.className="font-semibold"; opts.className="mt-3 grid gap-2";
-      function renderQ(){ const q=s.questions[qIndex]; stem.textContent=q.stem; opts.innerHTML="";
-        q.options.forEach((o,i)=>{ const btn=document.createElement("button"); btn.className="btn w-full text-left px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200";
-          btn.textContent=o; btn.onclick=()=>checkSingle(i); opts.appendChild(btn);}); }
-      function checkSingle(choice){ const q=s.questions[qIndex]; const isCorrect=choice===q.answerIdx;
-        showFeedback(isCorrect,(isCorrect?"Correct: ":"Not correct: ")+q.explain); if(isCorrect){score++;} qIndex++;
-        if(qIndex<s.questions.length){ nextBtn.classList.remove("hidden"); checkBtn.classList.add("hidden");
-          nextBtn.onclick=()=>{ nextBtn.classList.add("hidden"); checkBtn.classList.remove("hidden"); renderQ(); feedback.classList.add("hidden"); }; }
-        else{ checkBtn.classList.add("hidden"); nextBtn.classList.remove("hidden"); nextBtn.onclick=()=>goNextStage(); } }
-      qBox.appendChild(stem); qBox.appendChild(opts); taskArea.appendChild(qBox); checkBtn.classList.add("hidden"); nextBtn.classList.add("hidden"); renderQ();
-    }
+    if (s.type === "single-series") {
+      let qIndex = 0;
+      total += s.questions.length;
+      const qBox = document.createElement("div");
+      const stem = document.createElement("div");
+      stem.className = "font-semibold";
+      const opts = document.createElement("div");
+      opts.className = "mt-3 grid gap-2";
 
-    if(s.type==="classify"){
-      const grid=document.createElement("div"); grid.className="grid grid-cols-1 md:grid-cols-2 gap-4";
-      const pool=document.createElement("div"); pool.className="bg-slate-50 rounded-xl p-3";
-      const poolTitle=document.createElement("div"); poolTitle.className="text-sm font-semibold mb-2"; poolTitle.textContent="Cards"; pool.appendChild(poolTitle);
-      const poolBox=document.createElement("div"); poolBox.className="dropzone grid gap-2"; poolBox.dataset.bucket="pool"; pool.appendChild(poolBox);
-      const bucketWrap=document.createElement("div"); bucketWrap.className="grid grid-cols-1 gap-4";
-      s.buckets.forEach((bName,bIdx)=>{ const b=document.createElement("div"); b.className="bg-slate-50 rounded-xl p-3";
-        const h=document.createElement("div"); h.className="text-sm font-semibold mb-2"; h.textContent=bName;
-        const dz=document.createElement("div"); dz.className="dropzone grid gap-2 min-h-[120px] bg-white p-2 rounded-lg border border-slate-200"; dz.dataset.bucket=String(bIdx);
-        b.appendChild(h); b.appendChild(dz); bucketWrap.appendChild(b); });
-      grid.appendChild(pool); grid.appendChild(bucketWrap); taskArea.appendChild(grid);
-      const shuffled=s.items.map((it,i)=>({...it,i})).sort(()=>Math.random()-0.5);
-      shuffled.forEach(obj=>{ const card=document.createElement("div"); card.className="bg-slate-100 p-2 rounded-lg cursor-move"; card.draggable=true; card.dataset.itemIndex=String(obj.i); card.textContent=obj.text; poolBox.appendChild(card);});
-      let dragCard=null;
-      taskArea.addEventListener("dragstart",e=>{ const el=e.target.closest("[draggable]"); if(!el)return; dragCard=el; e.dataTransfer.effectAllowed="move"; });
-      taskArea.addEventListener("dragover",e=>{ if(e.target.closest(".dropzone")) e.preventDefault(); });
-      taskArea.addEventListener("drop",e=>{ const zone=e.target.closest(".dropzone"); if(!zone||!dragCard) return; e.preventDefault(); zone.appendChild(dragCard); dragCard=null; });
-      total+=1;
-      checkBtn.onclick=()=>{
-        const placement=new Map();
-        taskArea.querySelectorAll(".dropzone").forEach(z=>{
-          const b=z.dataset.bucket;
-          z.querySelectorAll("[draggable]").forEach(card=>{ placement.set(Number(card.dataset.itemIndex), b); });
+      function renderQ() {
+        revealedThisItem = false;
+        const q = s.questions[qIndex];
+        stem.textContent = q.stem;
+        opts.innerHTML = "";
+        q.options.forEach((o, i) => {
+          const btn = document.createElement("button");
+          btn.className = "btn w-full text-left px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200";
+          btn.textContent = o;
+          btn.onclick = () => checkSingle(i);
+          opts.appendChild(btn);
         });
-        const allCorrect=s.items.every((it,idx)=> String(it.bucket)===placement.get(idx));
-        if(allCorrect){
-          let msg=(s.id==="somite")?"Perfect mapping! Sclerotome → vertebrae/ribs/annulus; Dermatome → dermis; Myotome → epaxial & hypaxial; craniofacial bones & nucleus pulposus are not from somites."
-            :(s.id==="resegmentation")?"Perfect! Vertebrae become intersegmental; spinal nerves & myotomes remain segmental; IV disc/foramen are boundary structures."
-            :"All items correctly classified.";
-          showFeedback(true, msg); score++; checkBtn.disabled=true; nextBtn.classList.remove("hidden");
+        checkBtn.classList.add("hidden");
+        nextBtn.classList.add("hidden");
+      }
+
+      function checkSingle(choice) {
+        const q = s.questions[qIndex];
+        const isCorrect = choice === q.answerIdx;
+        showFeedback(isCorrect, (isCorrect ? "Correct: " : "Not correct: ") + q.explain);
+        if (isCorrect && !revealedThisItem) { score++; }
+        qIndex++;
+        if (qIndex < s.questions.length) {
+          nextBtn.classList.remove("hidden");
+          nextBtn.onclick = () => {
+            feedback.classList.add("hidden");
+            renderQ();
+          };
         } else {
-          const misplaced=[]; s.items.forEach((it,idx)=>{ const bPlaced=placement.get(idx); if(String(it.bucket)!==bPlaced) misplaced.push(s.items[idx].text); });
-          const hint=misplaced.length?`Recheck: ${misplaced.slice(0,3).join(", ")}${misplaced.length>3?" …":""}`:"Some cards are still in the pool.";
-          showFeedback(false,"Not quite right. "+hint);
+          nextBtn.classList.remove("hidden");
+          nextBtn.onclick = () => goNextStage();
         }
+      }
+
+      qBox.appendChild(stem);
+      qBox.appendChild(opts);
+      taskArea.appendChild(qBox);
+      renderQ();
+
+      showBtn.onclick = () => {
+        const q = s.questions[qIndex];
+        revealedThisItem = true;
+        // highlight correct option by disabling others and showing feedback
+        opts.querySelectorAll("button").forEach((b, i) => {
+          if (i === q.answerIdx) {
+            b.classList.add("ring-2","ring-green-500");
+          } else {
+            b.disabled = true;
+            b.classList.add("opacity-60");
+          }
+        });
+        showFeedback(true, "Answer revealed: " + q.options[q.answerIdx] + ". " + q.explain);
+        nextBtn.classList.remove("hidden");
+        nextBtn.onclick = () => {
+          // move to next question (or next stage if done)
+          const atLast = (qIndex === s.questions.length - 1);
+          if (!atLast) {
+            qIndex++;
+            feedback.classList.add("hidden");
+            renderQ();
+          } else {
+            goNextStage();
+          }
+        };
+      };
+    }
+
+    if (s.type === "classify") {
+      // Drag cards into buckets
+      const grid = document.createElement("div");
+      grid.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
+
+      // Pool of cards
+      const pool = document.createElement("div");
+      pool.className = "bg-slate-50 rounded-xl p-3";
+      const poolTitle = document.createElement("div");
+      poolTitle.className = "text-sm font-semibold mb-2";
+      poolTitle.textContent = "Cards";
+      pool.appendChild(poolTitle);
+
+      const poolBox = document.createElement("div");
+      poolBox.className = "dropzone grid gap-2";
+      poolBox.dataset.bucket = "pool";
+      poolBox.ariaLabel = "Card pool";
+      pool.appendChild(poolBox);
+
+      // Buckets
+      const bucketWrap = document.createElement("div");
+      bucketWrap.className = "grid grid-cols-1 gap-4";
+
+      s.buckets.forEach((bName, bIdx) => {
+        const b = document.createElement("div");
+        b.className = "bg-slate-50 rounded-xl p-3";
+        const h = document.createElement("div");
+        h.className = "text-sm font-semibold mb-2";
+        h.textContent = bName;
+        const dz = document.createElement("div");
+        dz.className = "dropzone grid gap-2 min-h-[120px] bg-white p-2 rounded-lg border border-slate-200";
+        dz.dataset.bucket = String(bIdx);
+        b.appendChild(h);
+        b.appendChild(dz);
+        bucketWrap.appendChild(b);
+      });
+
+      grid.appendChild(pool);
+      grid.appendChild(bucketWrap);
+      taskArea.appendChild(grid);
+
+      // Create draggable cards (shuffled)
+      const shuffled = s.items.map((it, i)=>({ ...it, i })).sort(()=>Math.random()-0.5);
+      shuffled.forEach(obj => {
+        const card = document.createElement("div");
+        card.className = "bg-slate-100 p-2 rounded-lg cursor-move";
+        card.draggable = true;
+        card.dataset.itemIndex = String(obj.i);
+        card.textContent = obj.text;
+        poolBox.appendChild(card);
+      });
+
+      // DnD behavior
+      let dragCard = null;
+      taskArea.addEventListener("dragstart", e => {
+        const el = e.target.closest("[draggable]");
+        if (!el) return;
+        dragCard = el;
+        e.dataTransfer.effectAllowed = "move";
+      });
+      taskArea.addEventListener("dragover", e => {
+        if (e.target.closest(".dropzone")) e.preventDefault();
+      });
+      taskArea.addEventListener("drop", e => {
+        const zone = e.target.closest(".dropzone");
+        if (!zone || !dragCard) return;
+        e.preventDefault();
+        zone.appendChild(dragCard);
+        dragCard = null;
+      });
+
+      // Scoring: count all items as one task
+      total += 1;
+
+      checkBtn.onclick = () => {
+        // Build map itemIndex -> bucket placed
+        const placement = new Map();
+        const allZones = taskArea.querySelectorAll(".dropzone");
+        allZones.forEach(z => {
+          const b = z.dataset.bucket;
+          z.querySelectorAll("[draggable]").forEach(card => {
+            placement.set(Number(card.dataset.itemIndex), b);
+          });
+        });
+
+        // Evaluate: correct if every item is in its target bucket
+        const allCorrect = s.items.every((it, idx) => String(it.bucket) === placement.get(idx));
+        if (allCorrect && !revealedThisItem) score++;
+        if (allCorrect) {
+          const msg=(s.id==="somite")
+            ?"Perfect mapping! Sclerotome → vertebrae/ribs/annulus; Dermatome → dermis; Myotome → epaxial & hypaxial; craniofacial bones & nucleus pulposus are not from somites."
+            :(s.id==="resegmentation")
+            ?"Perfect! Vertebrae become intersegmental; spinal nerves & myotomes remain segmental; IV disc/foramen are boundary structures."
+            :"All items correctly classified.";
+          showFeedback(true, msg);
+          checkBtn.disabled = true; nextBtn.classList.remove("hidden");
+        } else {
+          const misplaced = [];
+          s.items.forEach((it, idx) => {
+            const bPlaced = placement.get(idx);
+            if (String(it.bucket) !== bPlaced) misplaced.push(s.items[idx].text);
+          });
+          const hint = misplaced.length ? `Recheck: ${misplaced.slice(0,3).join(", ")}${misplaced.length>3?" …":""}` : "Some cards are still in the pool.";
+          showFeedback(false, "Not quite right. " + hint);
+        }
+      };
+
+      showBtn.onclick = () => {
+        // Move every card into its correct bucket
+        const zones = {};
+        taskArea.querySelectorAll(".dropzone").forEach(z => zones[z.dataset.bucket] = z);
+        s.items.forEach((it, idx) => {
+          const card = taskArea.querySelector(`[data-item-index="${idx}"]`);
+          if (card) zones[String(it.bucket)].appendChild(card);
+        });
+        revealedThisItem = true;
+        showFeedback(true, "Answer revealed: all cards placed in the correct buckets.");
+        checkBtn.disabled = true; nextBtn.classList.remove("hidden");
       };
     }
 
     setProgress();
   }
 
-  try{
-    console.log("Booting game… stages:", GAME.stages.length);
-    const nextBtnEl=document.getElementById('nextBtn');
-    nextBtnEl.onclick=goNextStage;
-    document.getElementById('restartBtn').onclick=()=>location.reload();
-    renderStage();
-  }catch(err){
-    console.error("Boot error:", err);
-    alert("JavaScript error: "+err.message);
+  function showFeedback(correct, text) {
+    feedback.classList.remove("hidden");
+    feedback.textContent = text;
+    feedback.classList.toggle("bg-green-100", correct);
+    feedback.classList.toggle("text-green-900", correct);
+    feedback.classList.toggle("bg-red-100", !correct);
+    feedback.classList.toggle("text-red-900", !correct);
   }
+
+  function goNextStage() {
+    const s = GAME.stages[currentStage];
+    addSummary(s);
+    currentStage++;
+    if (currentStage >= GAME.stages.length) {
+      finishGame();
+    } else {
+      renderStage();
+    }
+  }
+
+  function addSummary(s) {
+    const li = document.createElement("li");
+    li.innerHTML = `<strong>${s.title}</strong>: ${s.takeaway}`;
+    summaryList.appendChild(li);
+    if (s.notes && s.notes.length) {
+      const sub = document.createElement("ul");
+      sub.className = "list-disc pl-5 mt-1 text-slate-600";
+      s.notes.forEach(n=>{
+        const nli = document.createElement("li"); nli.textContent = n; sub.appendChild(nli);
+      });
+      summaryList.appendChild(sub);
+    }
+  }
+
+  function finishGame() {
+    progressBar.style.width = "100%";
+    progressLabel.textContent = "100%";
+    finalScore.textContent = String(score);
+    finalTotal.textContent = String(total);
+    summaryCard.classList.remove("hidden");
+    stageHeader.textContent = "Completed";
+    stageTitle.textContent = "Great work!";
+    stageIntro.textContent = "Review your key takeaways below.";
+    taskArea.innerHTML = "";
+    checkBtn.classList.add("hidden");
+    showBtn.classList.add("hidden");
+    nextBtn.classList.add("hidden");
+  }
+
+  nextBtn.onclick = goNextStage;
+  restartBtn.onclick = () => { location.reload(); };
+
+  // boot
+  renderStage();
   </script>
 </body>
 </html>
